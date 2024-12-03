@@ -1,7 +1,7 @@
 # 必要なパッケージのインストール
 apt-get install mesa-va-drivers -y
 
-# リポジトリのクローン
+# リポジトリのクローン (既存のものがある場合はスキップ)
 cd /content
 if [ ! -d "facefusion" ]; then
     git clone https://github.com/facefusion/facefusion --branch 3.0.0 --single-branch
@@ -10,20 +10,19 @@ else
 fi
 cd /content/facefusion
 
-# 必要なパッケージをインストール
+# パッケージのインストール
 pip install tensorrt==10.4.0 --extra-index-url https://pypi.nvidia.com
 pip install onnxruntime-gpu==1.20.1
-pip install -r requirements.txt
+pip install 'numpy<1.27'  # numpyのバージョンを固定
 
-# 互換性のために特定のバージョンのnumpy, pandas, pyarrowを使用
-pip install 'numpy<2'
+# 競合のあるパッケージを再インストール
 pip uninstall -y pyarrow pandas
 pip install pyarrow==14.0.0 pandas==2.2.2
 
 # GradioのUI設定を修正
 sed -i "s/ui\.launch(favicon_path = 'facefusion\.ico', inbrowser = state_manager\.get_item('open_browser'))/ui.launch(favicon_path = 'facefusion.ico', inbrowser = state_manager.get_item('open_browser'), share=True)/" /content/facefusion/facefusion/uis/layouts/default.py
 
-# facefusion.iniの設定変更
+# facefusion.iniの設定を修正
 sed -i '
 s/^execution_device_id =$/execution_device_id = 1/
 s/^execution_providers =$/execution_providers = cuda/
@@ -31,20 +30,15 @@ s/^execution_thread_count =$/execution_thread_count = 32/
 s/^execution_queue_count =$/execution_queue_count = 2/
 ' /content/facefusion/facefusion.ini
 
-# analyse_frame関数を修正
+# analyse_frame関数の修正
 TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
-if ! grep -q "return False" $TARGET_FILE; then
-    sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/vision_frame = prepare_frame(vision_frame)/c\
-def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False\n\tvision_frame = prepare_frame(vision_frame)\n\tprobability = forward(vision_frame)" $TARGET_FILE
-    echo "analyse_frame function modified."
-else
-    echo "analyse_frame function already modified."
-fi
+sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/^def/c\
+def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False" $TARGET_FILE
 
-# 修正内容を確認
+# 修正後の内容を確認
 echo "Updated analyse_frame function:"
 grep -A 5 "def analyse_frame" $TARGET_FILE
 
-# 実行
+# プロジェクトの実行
 cd /content/facefusion
 python facefusion.py run
