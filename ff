@@ -1,28 +1,23 @@
-#!/bin/bash
+apt-get install mesa-va-drivers
 
-# 必要なパッケージのインストール
-apt-get install mesa-va-drivers -y
-
-# リポジトリのクローン (既存のものがある場合はスキップ)
 cd /content
-if [ ! -d "facefusion" ]; then
-    git clone https://github.com/facefusion/facefusion --branch 3.0.0 --single-branch
-else
-    echo "facefusion directory already exists, skipping clone."
-fi
+git clone https://github.com/facefusion/facefusion --branch 3.0.0 --single-branch
 cd /content/facefusion
 
-# 必要なPythonパッケージのインストール
 pip install tensorrt==10.4.0 --extra-index-url https://pypi.nvidia.com
-pip install onnxruntime-gpu==1.20.1
-pip install 'numpy<1.27'
-pip uninstall -y pyarrow pandas
-pip install pyarrow==14.0.0 pandas==2.2.2
 
-# GradioのUI設定を修正
+python install.py --onnxruntime cuda
+pip install -r requirements.txt
+
+pip install 'numpy<2'
+pip uninstall -y pyarrow pandas
+pip install pyarrow pandas
+
+pip uninstall -y onnxruntime
+pip install onnxruntime-gpu
+
 sed -i "s/ui\.launch(favicon_path = 'facefusion\.ico', inbrowser = state_manager\.get_item('open_browser'))/ui.launch(favicon_path = 'facefusion.ico', inbrowser = state_manager.get_item('open_browser'), share=True)/" /content/facefusion/facefusion/uis/layouts/default.py
 
-# facefusion.iniの設定を修正
 sed -i '
 s/^execution_device_id =$/execution_device_id = 1/
 s/^execution_providers =$/execution_providers = cuda/
@@ -30,45 +25,6 @@ s/^execution_thread_count =$/execution_thread_count = 32/
 s/^execution_queue_count =$/execution_queue_count = 2/
 ' /content/facefusion/facefusion.ini
 
-# content_analyser.py の修正
-TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
 
-if [ -f "$TARGET_FILE" ]; then
-    echo "Fixing content_analyser.py..."
-
-    # content_analyser.py の内容を上書き
-    cat <<EOF > "$TARGET_FILE"
-def analyse_image(image):
-    """
-    Mock function to analyse an image.
-    """
-    print("analyse_image called")
-    return True
-
-def analyse_video(video):
-    """
-    Mock function to analyse a video.
-    """
-    print("analyse_video called")
-    return True
-
-def analyse_frame(vision_frame):
-    """
-    Mocked analyse_frame function.
-    """
-    print("analyse_frame called")
-    return False
-EOF
-
-    echo "Updated content_analyser.py successfully."
-else
-    echo "content_analyser.py not found. Ensure the script generates this file correctly."
-fi
-
-# 修正後の内容を確認
-echo "Updated content_analyser.py:"
-cat "$TARGET_FILE"
-
-# プロジェクトの実行
-echo "Running facefusion..."
+cd /content/facefusion
 python facefusion.py run
