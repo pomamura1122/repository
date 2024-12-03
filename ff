@@ -1,0 +1,39 @@
+apt-get install mesa-va-drivers
+
+cd /content
+git clone https://github.com/facefusion/facefusion --branch 3.0.0 --single-branch
+cd /content/facefusion
+
+pip install tensorrt==10.4.0 --extra-index-url https://pypi.nvidia.com
+
+python install.py --onnxruntime cuda
+pip install -r requirements.txt
+
+pip install 'numpy<2'
+pip uninstall -y pyarrow pandas
+pip install pyarrow pandas
+
+pip uninstall -y onnxruntime
+pip install onnxruntime-gpu
+
+sed -i "s/ui\.launch(favicon_path = 'facefusion\.ico', inbrowser = state_manager\.get_item('open_browser'))/ui.launch(favicon_path = 'facefusion.ico', inbrowser = state_manager.get_item('open_browser'), share=True)/" /content/facefusion/facefusion/uis/layouts/default.py
+
+sed -i '
+s/^execution_device_id =$/execution_device_id = 1/
+s/^execution_providers =$/execution_providers = cuda/
+s/^execution_thread_count =$/execution_thread_count = 32/
+s/^execution_queue_count =$/execution_queue_count = 2/
+' /content/facefusion/facefusion.ini
+
+# analyse_frame 関数を修正
+TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
+sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/vision_frame = prepare_frame(vision_frame)/c\
+def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False\n\tvision_frame = prepare_frame(vision_frame)\n\tprobability = forward(vision_frame)" $TARGET_FILE
+
+# 修正内容を確認
+echo "Updated analyse_frame function:"
+grep -A 5 "def analyse_frame" $TARGET_FILE
+
+# 実行
+cd /content/facefusion
+python facefusion.py run
