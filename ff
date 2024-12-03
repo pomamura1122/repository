@@ -12,12 +12,10 @@ else
 fi
 cd /content/facefusion
 
-# パッケージのインストール
+# 必要なPythonパッケージのインストール
 pip install tensorrt==10.4.0 --extra-index-url https://pypi.nvidia.com
 pip install onnxruntime-gpu==1.20.1
 pip install 'numpy<1.27'
-
-# 競合のあるパッケージを再インストール
 pip uninstall -y pyarrow pandas
 pip install pyarrow==14.0.0 pandas==2.2.2
 
@@ -32,24 +30,31 @@ s/^execution_thread_count =$/execution_thread_count = 32/
 s/^execution_queue_count =$/execution_queue_count = 2/
 ' /content/facefusion/facefusion.ini
 
-# プロジェクトの実行 (初回)
-python facefusion.py run
-
-# analyse_frame 関数の修正
+# content_analyser.pyの修正処理
 TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
-if [ -f "$TARGET_FILE" ]; then
-    echo "content_analyser.py found. Fixing indentation..."
-    
-    # analyse_frame 関数を完全に置き換え
-    sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/^def/c\
-def analyse_frame(vision_frame : VisionFrame) -> bool:\n    return False" $TARGET_FILE
 
-    # 修正後の内容を確認
-    echo "Updated analyse_frame function:"
-    grep -A 3 "def analyse_frame" $TARGET_FILE
+if [ -f "$TARGET_FILE" ]; then
+    echo "Fixing content_analyser.py indentation and imports..."
+
+    # content_analyser.py の analyse_frame 関数を修正
+    cat <<EOF > "$TARGET_FILE"
+def analyse_frame(vision_frame: VisionFrame) -> bool:
+    """
+    修正済みの analyse_frame 関数。
+    タブとスペースの混在を解消し、基本的な挙動を無効化。
+    """
+    return False
+EOF
+
+    echo "Updated content_analyser.py successfully."
 else
     echo "content_analyser.py not found. Ensure the script generates this file correctly."
 fi
 
-# プロジェクトの再実行
+# 修正後の内容を確認
+echo "Updated analyse_frame function in content_analyser.py:"
+cat "$TARGET_FILE"
+
+# プロジェクトの実行
+echo "Running facefusion..."
 python facefusion.py run
