@@ -10,10 +10,10 @@ else
 fi
 cd /content/facefusion
 
-# パッケージのインストール
+# 必要なパッケージのインストール
 pip install tensorrt==10.4.0 --extra-index-url https://pypi.nvidia.com
 pip install onnxruntime-gpu==1.20.1
-pip install 'numpy<1.27'  # numpyのバージョンを固定
+pip install 'numpy<1.27'
 
 # 競合のあるパッケージを再インストール
 pip uninstall -y pyarrow pandas
@@ -24,16 +24,20 @@ sed -i "s/ui\.launch(favicon_path = 'facefusion\.ico', inbrowser = state_manager
 
 # facefusion.iniの設定を修正
 sed -i '
-s/^execution_device_id =$/execution_device_id = 1/
-s/^execution_providers =$/execution_providers = cuda/
-s/^execution_thread_count =$/execution_thread_count = 32/
-s/^execution_queue_count =$/execution_queue_count = 2/
+s/^execution_device_id =.*$/execution_device_id = 1/
+s/^execution_providers =.*$/execution_providers = cuda/
+s/^execution_thread_count =.*$/execution_thread_count = 32/
+s/^execution_queue_count =.*$/execution_queue_count = 2/
 ' /content/facefusion/facefusion.ini
 
 # analyse_frame関数の修正
 TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
-sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/^def/c\
+if grep -q "def analyse_frame" $TARGET_FILE; then
+    sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/^def/c\
 def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False" $TARGET_FILE
+else
+    echo "def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False" >> $TARGET_FILE
+fi
 
 # 修正後の内容を確認
 echo "Updated analyse_frame function:"
