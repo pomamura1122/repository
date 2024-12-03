@@ -30,26 +30,33 @@ s/^execution_thread_count =$/execution_thread_count = 32/
 s/^execution_queue_count =$/execution_queue_count = 2/
 ' /content/facefusion/facefusion.ini
 
-# content_analyser.pyの修正処理
+# content_analyser.py の修正
 TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
 
 if [ -f "$TARGET_FILE" ]; then
-    echo "Fixing content_analyser.py indentation and imports..."
+    echo "Fixing content_analyser.py..."
 
-    # content_analyser.py の内容を完全に上書き
+    # content_analyser.py の内容を上書き
     cat <<EOF > "$TARGET_FILE"
-# Mock implementations of analyse_image and analyse_video
 def analyse_image(image):
+    """
+    Mock function to analyse an image.
+    """
+    print("analyse_image called")
     return True
 
 def analyse_video(video):
+    """
+    Mock function to analyse a video.
+    """
+    print("analyse_video called")
     return True
 
-# Updated analyse_frame function
 def analyse_frame(vision_frame):
     """
     Mocked analyse_frame function.
     """
+    print("analyse_frame called")
     return False
 EOF
 
