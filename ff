@@ -1,23 +1,28 @@
-apt-get install mesa-va-drivers
+apt-get install mesa-va-drivers -y
 
 cd /content
+rm -rf facefusion  # クリーンな状態を確保
 git clone https://github.com/facefusion/facefusion --branch 3.0.0 --single-branch
 cd /content/facefusion
 
+# 必要なライブラリをインストール
 pip install tensorrt==10.4.0 --extra-index-url https://pypi.nvidia.com
 
 python install.py --onnxruntime cuda
 pip install -r requirements.txt
 
+# 依存ライブラリのバージョン競合を解決
 pip install 'numpy<2'
 pip uninstall -y pyarrow pandas
-pip install pyarrow pandas
+pip install pyarrow==18.0.0 pandas==2.2.2
 
 pip uninstall -y onnxruntime
-pip install onnxruntime-gpu
+pip install onnxruntime-gpu==1.20.1
 
+# Gradio起動設定の変更
 sed -i "s/ui\.launch(favicon_path = 'facefusion\.ico', inbrowser = state_manager\.get_item('open_browser'))/ui.launch(favicon_path = 'facefusion.ico', inbrowser = state_manager.get_item('open_browser'), share=True)/" /content/facefusion/facefusion/uis/layouts/default.py
 
+# 実行設定の修正
 sed -i '
 s/^execution_device_id =$/execution_device_id = 1/
 s/^execution_providers =$/execution_providers = cuda/
@@ -28,7 +33,7 @@ s/^execution_queue_count =$/execution_queue_count = 2/
 # analyse_frame 関数を修正
 TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
 sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/vision_frame = prepare_frame(vision_frame)/c\
-def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False\n\tvision_frame = prepare_frame(vision_frame)\n\tprobability = forward(vision_frame)" $TARGET_FILE
+def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False\n\t# vision_frame = prepare_frame(vision_frame)\n\t# probability = forward(vision_frame)" $TARGET_FILE
 
 # 修正内容を確認
 echo "Updated analyse_frame function:"
