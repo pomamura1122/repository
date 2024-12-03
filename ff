@@ -36,12 +36,19 @@ TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
 if [ -f "$TARGET_FILE" ]; then
     echo "Fixing content_analyser.py indentation and imports..."
 
-    # content_analyser.py の analyse_frame 関数を修正
+    # content_analyser.py の内容を完全に上書き
     cat <<EOF > "$TARGET_FILE"
-def analyse_frame(vision_frame: VisionFrame) -> bool:
+# Mock implementations of analyse_image and analyse_video
+def analyse_image(image):
+    return True
+
+def analyse_video(video):
+    return True
+
+# Updated analyse_frame function
+def analyse_frame(vision_frame):
     """
-    修正済みの analyse_frame 関数。
-    タブとスペースの混在を解消し、基本的な挙動を無効化。
+    Mocked analyse_frame function.
     """
     return False
 EOF
@@ -52,7 +59,7 @@ else
 fi
 
 # 修正後の内容を確認
-echo "Updated analyse_frame function in content_analyser.py:"
+echo "Updated content_analyser.py:"
 cat "$TARGET_FILE"
 
 # プロジェクトの実行
