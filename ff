@@ -30,19 +30,22 @@ s/^execution_thread_count =.*$/execution_thread_count = 32/
 s/^execution_queue_count =.*$/execution_queue_count = 2/
 ' /content/facefusion/facefusion.ini
 
-# analyse_frame関数の修正
+# 一度 facefusion.py を実行
+python facefusion.py run
+
+# content_analyser.py を確認し、修正
 TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
-if grep -q "def analyse_frame" $TARGET_FILE; then
-    sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/^def/c\
-def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False" $TARGET_FILE
+if [ -f "$TARGET_FILE" ]; then
+    echo "content_analyser.py found. Modifying..."
+    sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/vision_frame = prepare_frame/c\
+def analyse_frame(vision_frame : VisionFrame) -> bool:\n    return False" $TARGET_FILE
+
+    # 修正後の内容を確認
+    echo "Updated analyse_frame function:"
+    grep -A 3 "def analyse_frame" $TARGET_FILE
 else
-    echo "def analyse_frame(vision_frame : VisionFrame) -> bool:\n\treturn False" >> $TARGET_FILE
+    echo "content_analyser.py not found. Ensure the script generates this file correctly."
 fi
 
-# 修正後の内容を確認
-echo "Updated analyse_frame function:"
-grep -A 5 "def analyse_frame" $TARGET_FILE
-
-# プロジェクトの実行
-cd /content/facefusion
+# 再度 facefusion.py を実行
 python facefusion.py run
