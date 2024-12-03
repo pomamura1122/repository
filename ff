@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # 必要なパッケージのインストール
 apt-get install mesa-va-drivers -y
 
@@ -10,7 +12,7 @@ else
 fi
 cd /content/facefusion
 
-# 必要なパッケージのインストール
+# パッケージのインストール
 pip install tensorrt==10.4.0 --extra-index-url https://pypi.nvidia.com
 pip install onnxruntime-gpu==1.20.1
 pip install 'numpy<1.27'
@@ -24,20 +26,22 @@ sed -i "s/ui\.launch(favicon_path = 'facefusion\.ico', inbrowser = state_manager
 
 # facefusion.iniの設定を修正
 sed -i '
-s/^execution_device_id =.*$/execution_device_id = 1/
-s/^execution_providers =.*$/execution_providers = cuda/
-s/^execution_thread_count =.*$/execution_thread_count = 32/
-s/^execution_queue_count =.*$/execution_queue_count = 2/
+s/^execution_device_id =$/execution_device_id = 1/
+s/^execution_providers =$/execution_providers = cuda/
+s/^execution_thread_count =$/execution_thread_count = 32/
+s/^execution_queue_count =$/execution_queue_count = 2/
 ' /content/facefusion/facefusion.ini
 
-# 一度 facefusion.py を実行
+# プロジェクトの実行 (初回)
 python facefusion.py run
 
-# content_analyser.py を確認し、修正
+# analyse_frame 関数の修正
 TARGET_FILE="/content/facefusion/facefusion/content_analyser.py"
 if [ -f "$TARGET_FILE" ]; then
-    echo "content_analyser.py found. Modifying..."
-    sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/vision_frame = prepare_frame/c\
+    echo "content_analyser.py found. Fixing indentation..."
+    
+    # analyse_frame 関数を完全に置き換え
+    sed -i "/def analyse_frame(vision_frame : VisionFrame) -> bool:/,/^def/c\
 def analyse_frame(vision_frame : VisionFrame) -> bool:\n    return False" $TARGET_FILE
 
     # 修正後の内容を確認
@@ -47,5 +51,5 @@ else
     echo "content_analyser.py not found. Ensure the script generates this file correctly."
 fi
 
-# 再度 facefusion.py を実行
+# プロジェクトの再実行
 python facefusion.py run
